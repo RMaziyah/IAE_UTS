@@ -28,15 +28,44 @@ def add_hotel():
 @app.route('/hotels/<int:hotel_id>', methods=['PUT'])
 def update_hotel(hotel_id):
     data = request.get_json()
-    name = data['name']
-    city = data['city']
-    rating = data['rating']
-    price = data['price']
-    query = "UPDATE hotels SET name = %s, city = %s, price = %s WHERE hotel_id = %s"
-    values = (name, city, rating, price, hotel_id)
+    name = data.get('name')
+    city = data.get('city')
+    rating = data.get('rating')
+    price = data.get('price')
+    query = "UPDATE hotels SET "
+    sets = []
+    values = []
+    if name:
+        sets.append("name = %s")
+        values.append(name)
+    if city:
+        sets.append("city = %s")
+        values.append(city)
+    if rating:
+        sets.append("rating = %s")
+        values.append(rating)
+    if price:
+        sets.append("price = %s")
+        values.append(price)
+    query += ", ".join(sets)
+    query += " WHERE hotel_id = %s"
+    values.append(hotel_id)
     cursor.execute(query, values)
     db.commit()
     return jsonify({'message': 'Hotel updated successfully'})
+
+# @app.route('/hotels/<int:hotel_id>', methods=['PUT'])
+# def update_hotel(hotel_id):
+#     data = request.get_json()
+#     name = data['name']
+#     city = data['city']
+#     rating = data['rating']
+#     price = data['price']
+#     query = "UPDATE hotels SET name = %s, city = %s, rating = %s, price = %s WHERE hotel_id = %s"
+#     values = (name, city, rating, price, hotel_id)
+#     cursor.execute(query, values)
+#     db.commit()
+#     return jsonify({'message': 'Hotel updated successfully'})
 
 # delete hotel endpoint
 @app.route('/hotels/<int:hotel_id>', methods=['DELETE'])
@@ -81,21 +110,49 @@ def get_hotels_by_city(city):
 
 
 # add booking API
-@app.route('/booking', methods=['POST'])
+@app.route('/bookings', methods=['POST'])
 def add_booking():
     data = request.get_json()
-    hotel_id = data['hotel_id']
+    hotel_name = data['hotel_name']
+    city = data['city']
     name = data['name']
     email = data['email']
     phone = data['phone']
     checkin_date = data['checkin_date']
     checkout_date = data['checkout_date']
+    
+    # Query to obtain hotel_id based on the given hotel name and city
+    query = "SELECT hotel_id FROM hotels WHERE name = %s AND city = %s"
+    values = (hotel_name, city)
+    cursor.execute(query, values)
+    result = cursor.fetchone()
+    if not result:
+        return jsonify({'message': 'Hotel not found'})
+    
+    # Insert the booking with the obtained hotel_id
+    hotel_id = result[0]
     query = "INSERT INTO bookings (hotel_id, name, email, phone, checkin_date, checkout_date) VALUES (%s, %s, %s, %s, %s, %s)"
     values = (hotel_id, name, email, phone, checkin_date, checkout_date)
     cursor.execute(query, values)
     db.commit()
     booking_id = cursor.lastrowid
     return jsonify({'message': f'Booking added successfully with booking id: {booking_id}'})
+
+# @app.route('/bookings', methods=['POST'])
+# def add_booking():
+#     data = request.get_json()
+#     hotel_id = data['hotel_id']
+#     name = data['name']
+#     email = data['email']
+#     phone = data['phone']
+#     checkin_date = data['checkin_date']
+#     checkout_date = data['checkout_date']
+#     query = "INSERT INTO bookings (hotel_id, name, email, phone, checkin_date, checkout_date) VALUES (%s, %s, %s, %s, %s, %s)"
+#     values = (hotel_id, name, email, phone, checkin_date, checkout_date)
+#     cursor.execute(query, values)
+#     db.commit()
+#     booking_id = cursor.lastrowid
+#     return jsonify({'message': f'Booking added successfully with booking id: {booking_id}'})
 
 
 # get booking API
